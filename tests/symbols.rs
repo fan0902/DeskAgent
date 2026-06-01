@@ -1,4 +1,6 @@
-use deskagent::symbols::{index_rust_files, parse_rust_symbols, SymbolKind};
+use deskagent::symbols::{index_rust_files, parse_python_symbols, parse_rust_symbols, SymbolKind};
+
+use deskagent::highlight::Highlighter;
 
 #[test]
 fn parse_rust_symbols_finds_free_functions_and_methods() {
@@ -39,4 +41,41 @@ fn index_rust_files_ignores_non_rust_files() {
     assert_eq!(symbols[0].name, "library");
     assert_eq!(symbols[0].path, rust_file);
     assert_eq!(symbols[0].line, 1);
+}
+
+#[test]
+fn parse_python_symbols_finds_functions_and_methods() {
+    let source = r#"
+def top_level():
+    pass
+
+class Worker:
+    def run(self):
+        pass
+
+    async def stop(self):
+        pass
+"#;
+
+    let symbols = parse_python_symbols("worker.py".into(), source);
+    let names: Vec<_> = symbols.iter().map(|symbol| symbol.name.as_str()).collect();
+
+    assert_eq!(names, vec!["top_level", "Worker", "Worker.run", "Worker.stop"]);
+    assert_eq!(symbols[0].kind, SymbolKind::Function);
+    assert_eq!(symbols[2].kind, SymbolKind::Method);
+    assert_eq!(symbols[2].line, 6);
+    assert_eq!(symbols[3].line, 9);
+}
+
+#[test]
+fn highlighter_colors_python_code() {
+    let source = "def run():\n    return 1\n";
+    let lines = Highlighter::new().highlight(source, "worker.py");
+
+    let colors: std::collections::HashSet<_> = lines
+        .iter()
+        .flat_map(|line| line.iter().map(|(color, _)| *color))
+        .collect();
+
+    assert!(colors.len() > 1);
 }

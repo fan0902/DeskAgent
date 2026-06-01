@@ -3,5 +3,7 @@ pub mod app;
 pub mod config;
 pub mod diff;
 pub mod editor;
+pub mod highlight;
 pub mod project;
 pub mod symbols;
+pub mod terminal;
